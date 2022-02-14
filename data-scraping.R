@@ -206,3 +206,4 @@ fulldata = inner_join(results,torvik_w_info,by = "season_wteam") %>%
   distinct() %>%
   inner_join(kenpom_l_info,by = "season_lteam")
 
+write.csv(fulldata,file = "complete-model-data.csv")
