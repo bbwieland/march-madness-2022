@@ -102,9 +102,6 @@ library(MASS)
 model.4 <- stepAIC(model.1,direction = "both",trace = F)
 detach("package:MASS")
 
-wew = LogLossTester(model.1,test.2)$Failures
-
-wew2 = LogLossTester(model.2,test.2)$Failures
 ## RESULTS: 
 
 # best model is Model 1, with a log-loss of 0.370 and 84.5% accuracy
