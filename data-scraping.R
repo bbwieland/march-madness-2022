@@ -2,18 +2,18 @@
 library(tidyverse)
 library(rvest)
 
-## CSV imports ----
+## CSV imports, straight from Kaggle ----
 
-teams <- read.csv("MTeams.csv") %>% select(TeamID,TeamName) %>%
+teams <- read.csv("Data/MTeams.csv") %>% select(TeamID,TeamName) %>%
   mutate(TeamName = sub(" St$"," St.",TeamName))
-results <- read.csv("MNCAATourneyDetailedResults.csv") %>%
+results <- read.csv("Data/MNCAATourneyDetailedResults.csv") %>%
   filter(Season >= 2008 & Season <= 2019) %>%
   mutate(list_index = Season - 2007) %>%
   mutate(gameid = seq(1:795)) %>%
   mutate(season_wteam = paste0(Season,WTeamID),
          season_lteam = paste0(Season,LTeamID))
 
-## KenPom scraping function ----
+## KenPom web scraping function ----
 
 kenpom_scraper <- function(year){
   url <- read_html(paste0("https://kenpom.com/index.php?y=",year))
@@ -49,12 +49,7 @@ kenpom_scraper <- function(year){
   kenpom
 }
 
-kp21 = kenpom_scraper(2021)
-bt21 = torvik_scraper(2021)
-
-merged = inner_join(kp21,bt21,by = "Team")
-
-## BartTorvik scraping function ----
+## BartTorvik web scraping function ----
 
 torvik_scraper <- function(year){
   url <- read_html(paste0("https://barttorvik.com/teamstats.php?year=",year,"&sort=2"))
@@ -85,7 +80,12 @@ torvik_scraper <- function(year){
   torvik
 } 
 
-## actually scraping data
+## actually scraping data in list form
+# for Kenpom, from 2008-2019
+# for Torvik, from 2008-2019
+
+# note: there are limitations on the scope of this data.
+# Torvik data only goes back to 2008, while the Kaggle datasets end in 2019
 
 kenpom_output = list(kp2008 = kenpom_scraper(2008),
                      kp2009 = kenpom_scraper(2009),
@@ -139,7 +139,11 @@ torvik_output = rbind(torvik_output[[1]],
                       torvik_output[[11]],
                       torvik_output[[12]])
 
-### COMBINING THE BIG DATASET 
+### combining the big dataset: 
+# note: our functions are basically doing the following:
+# 1: selecting data for the winner and loser of each game, for each dataset (KP and BT)
+# 2: applying that function to every game
+# 3: combining the winner & loser data for each game for each dataset (KP and BT)
 
 torvik_w_selector = function(input){
   year = input[1]
@@ -197,6 +201,8 @@ torvik_l_info = apply_l_combiner(torvik_l_selector,results_l_input)
 kenpom_w_info = apply_w_combiner(kenpom_w_selector,results_w_input)
 kenpom_l_info = apply_l_combiner(kenpom_l_selector,results_l_input)
 
+# ultimately, we have "fulldata", a dataset w/ info on every game
+# as well as information from KenPom and BartTorvik on the winners & losers.
 
 fulldata = inner_join(results,torvik_w_info,by = "season_wteam") %>%
   distinct() %>%
@@ -206,4 +212,4 @@ fulldata = inner_join(results,torvik_w_info,by = "season_wteam") %>%
   distinct() %>%
   inner_join(kenpom_l_info,by = "season_lteam")
 
-write.csv(fulldata,file = "complete-model-data.csv")
+write.csv(fulldata,file = "Data/complete-model-data.csv")

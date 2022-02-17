@@ -8,7 +8,7 @@ library(MLmetrics)
 library(caret)
 
 set.seed(4133)
-data = read_csv("complete-model-data.csv") %>% mutate(GameID = seq(1:660))
+data = read_csv("Data/complete-model-data.csv") %>% mutate(GameID = seq(1:660))
 
 ## functions ----
 
@@ -125,7 +125,7 @@ validation.test.1 = test.1[-training.index,]
 ## let's try the model w/ interaction terms & the model without interaction terms. 
 
 model.1 = glm(WinLoss~OffDiffKP+DefDiffKP+OffDiffBT+DefDiffBT,training.test.1,family = "binomial")
-LogLossTester(model.1,validation.test.1)
+LogLossTester(model.1,validation.test.1)$ConfidencePerformance
 
 model.1.interaction = glm(WinLoss~OffDiffKP+DefDiffKP+OffDiffBT+DefDiffBT+
                             OffDiffKP*OffDiffBT+DefDiffKP*DefDiffBT,training.test.1,family = "binomial")
