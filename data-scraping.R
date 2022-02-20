@@ -6,12 +6,15 @@ library(rvest)
 
 teams <- read.csv("Data/MTeams.csv") %>% select(TeamID,TeamName) %>%
   mutate(TeamName = sub(" St$"," St.",TeamName))
+
 results <- read.csv("Data/MNCAATourneyDetailedResults.csv") %>%
-  filter(Season >= 2008 & Season <= 2019) %>%
+  filter((Season >= 2008 & Season <= 2019)|Season == 2021) %>%
   mutate(list_index = Season - 2007) %>%
-  mutate(gameid = seq(1:795)) %>%
+  mutate(gameid = seq(1:861)) %>%
   mutate(season_wteam = paste0(Season,WTeamID),
          season_lteam = paste0(Season,LTeamID))
+
+potential.names <- read.csv("Data/MTeamSpellings.csv")
 
 ## KenPom web scraping function ----
 
@@ -43,7 +46,8 @@ kenpom_scraper <- function(year){
   kenpom = kenpom %>% mutate(Wins = as.numeric(wins),Losses = as.numeric(losses)) %>%
     mutate(WinPct = Wins/(Wins + Losses),
            Year = year) %>%
-    left_join(teams,by = c("Team" = "TeamName"))
+    mutate(Team = tolower(Team)) %>%
+    left_join(potential.names,by = c("Team" = "TeamNameSpelling"))
   
   
   kenpom
@@ -70,11 +74,12 @@ torvik_scraper <- function(year){
     select(-Rank) %>%
     mutate(Team = gsub('[[:digit:]]+', '', Team)) %>%
     mutate(Team = gsub('\\*', '', Team)) %>%
-    mutate(Team = sub(" $", "", Team))
+    mutate(Team = sub(" $", "", Team)) %>%
+    mutate(Team = tolower(Team))
 
   colnames(torvik)[3:19] = paste0(colnames(torvik)[3:19],"BT")
   
-  torvik = torvik %>% left_join(teams,by = c("Team" = "TeamName")) %>%
+  torvik = torvik %>% left_join(potential.names,by = c("Team" = "TeamNameSpelling")) %>%
     mutate(Year = year)
   
   torvik
@@ -87,57 +92,12 @@ torvik_scraper <- function(year){
 # note: there are limitations on the scope of this data.
 # Torvik data only goes back to 2008, while the Kaggle datasets end in 2019
 
-kenpom_output = list(kp2008 = kenpom_scraper(2008),
-                     kp2009 = kenpom_scraper(2009),
-                     kp2010 = kenpom_scraper(2010),
-                     kp2011 = kenpom_scraper(2011),
-                     kp2012 = kenpom_scraper(2012),
-                     kp2013 = kenpom_scraper(2013),
-                     kp2014 = kenpom_scraper(2014),
-                     kp2015 = kenpom_scraper(2015),
-                     kp2016 = kenpom_scraper(2016),
-                     kp2017 = kenpom_scraper(2017),
-                     kp2018 = kenpom_scraper(2018),
-                     kp2019 = kenpom_scraper(2019))
+kenpom_output = 2008:2021 %>%
+  map_dfr(.f = ~kenpom_scraper(year = .x))
 
-kenpom_output = rbind(kenpom_output[[1]],
-                      kenpom_output[[2]],
-                      kenpom_output[[3]],
-                      kenpom_output[[4]],
-                      kenpom_output[[5]],
-                      kenpom_output[[6]],
-                      kenpom_output[[7]],
-                      kenpom_output[[8]],
-                      kenpom_output[[9]],
-                      kenpom_output[[10]],
-                      kenpom_output[[11]],
-                      kenpom_output[[12]])
-
-torvik_output = list(bt2008 = torvik_scraper(2008),
-                     bt2009 = torvik_scraper(2009),
-                     bt2010 = torvik_scraper(2010),
-                     bt2011 = torvik_scraper(2011),
-                     bt2012 = torvik_scraper(2012),
-                     bt2013 = torvik_scraper(2013),
-                     bt2014 = torvik_scraper(2014),
-                     bt2015 = torvik_scraper(2015),
-                     bt2016 = torvik_scraper(2016),
-                     bt2017 = torvik_scraper(2017),
-                     bt2018 = torvik_scraper(2018),
-                     bt2019 = torvik_scraper(2019))
-
-torvik_output = rbind(torvik_output[[1]],
-                      torvik_output[[2]],
-                      torvik_output[[3]],
-                      torvik_output[[4]],
-                      torvik_output[[5]],
-                      torvik_output[[6]],
-                      torvik_output[[7]],
-                      torvik_output[[8]],
-                      torvik_output[[9]],
-                      torvik_output[[10]],
-                      torvik_output[[11]],
-                      torvik_output[[12]])
+torvik_output = 2008:2021 %>%
+  map_dfr(.f = ~torvik_scraper(year = .x))
+  
 
 ### combining the big dataset: 
 # note: our functions are basically doing the following:
@@ -212,4 +172,4 @@ fulldata = inner_join(results,torvik_w_info,by = "season_wteam") %>%
   distinct() %>%
   inner_join(kenpom_l_info,by = "season_lteam")
 
-write.csv(fulldata,file = "Data/complete-model-data.csv")
+write.csv(fulldata,"Data/complete-model-data-2.csv")
