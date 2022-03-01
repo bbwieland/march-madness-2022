@@ -455,7 +455,7 @@ linearRegressionUsing10FoldCV = train(
   trControl = trainControl(method = "cv",number = 10,verboseIter = F)
 )
 
-
+usethis::edit_r_environ()
 maxedModelPredictions = predict(linearRegressionUsing10FoldCV,full_data)
 
 
