@@ -65,6 +65,8 @@ permutationGenerator = function(year){
     mutate(OffDiffEFG = OffEFGPctBT.x - OffEFGPctBT.y,
            DefDiffEFG = DefEFGPctBT.x - DefEFGPctBT.y,
            OffDiffTOV = OffTOVPctBT.x - OffTOVPctBT.y,
+           DefDiffTOV = DefTOVPctBT.x - DefTOVPctBT.y,
+           OffDiffORBPct = OffORBPctBT.x - OffTOVPctBT.y,
            DefDiffORBPct = DefORBPctBT.x - DefORBPctBT.y,
            OffDiffKP = OffAdjEffKP.x - OffAdjEffKP.y,
            DefDiffKP = DefAdjEffKP.x - DefAdjEffKP.y,
@@ -73,10 +75,12 @@ permutationGenerator = function(year){
   
   model.4.predictions = predict(model.4,formatted_perm,type = "response")
   model.5.predictions = predict(model.5,formatted_perm,type = "response")
+  model.cv.predictions = predict(linearRegressionUsing10FoldCV,formatted_perm)
   
   
   formatted_perm = formatted_perm %>% mutate(Model4Odds = model.4.predictions,
-                                             Model5Odds = model.5.predictions)
+                                             Model5Odds = model.5.predictions,
+                                             LinRegOdds = model.cv.predictions)
   
   formatted_perm
 }
@@ -102,7 +106,44 @@ overallDataModel5 = overallDataFormatted %>%
   rename(Pred = Model5Odds) %>%
   arrange(ID)
 
+overallDataLinRegModel = overallDataFormatted %>%
+  select(ID,LinRegOdds) %>%
+  rename(Pred = LinRegOdds) %>%
+  arrange(ID)
+
 write.csv(overallDataModel4,file = "Predictions/model-4-picks.csv",
           row.names = F)
 write.csv(overallDataModel5,file = "Predictions/model-5-picks.csv",
           row.names = F)
+write.csv(overallDataLinRegModel,file = "Predictions/linreg-picks.csv",
+          row.names = F)
+
+getYearCSV = function(year) {
+    
+  overallDataFormatted = overallData %>%
+    filter(Year == year) %>%
+    mutate(ID = paste(Year,TeamID1,TeamID2,sep = "_"))
+  
+  overallDataModel4 = overallDataFormatted %>%
+    select(ID,Model4Odds) %>% 
+    rename(Pred = Model4Odds) %>%
+    arrange(ID)
+  
+  overallDataModel5 = overallDataFormatted %>%
+    select(ID,Model5Odds) %>% 
+    rename(Pred = Model5Odds) %>%
+    arrange(ID)
+  
+  write.csv(overallDataModel4,file = paste0("Predictions/model-4-picks-",year,".csv"),
+            row.names = F)
+  write.csv(overallDataModel5,file = paste0("Predictions/model-5-picks-",year,".csv"),
+            row.names = F)
+  
+}
+
+
+getYearCSV(2016)
+getYearCSV(2017)
+getYearCSV(2018)
+getYearCSV(2019)
+getYearCSV(2021)
